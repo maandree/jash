@@ -50,6 +50,8 @@ public class Jash
 	    Properties.env.put("USER", user);
 	    Properties.env.put("HOST", host);
 	    
+	    final LineReaderInterface lineReader = new LineReader();
+	    
 	    for (;;)
 	    {
 		if (Properties.env.get("TERM").equals("xterm"))
@@ -70,35 +72,14 @@ public class Jash
 				     (Properties.getProperty(Property.UID).equals("0")
 				        ? "\033[1;31m# \033[21;39m"
 				        : "\033[1;34m! \033[21;39m"));
-		
-		byte[] buf = new byte[64];
-		int ptr = 0;
-		
+		 
 		try
 		{
-		    for (int d; (d = System.in.read()) != '\n'; )
-		    {
-			if (d == 'D' - '@')
-			{
-			    System.out.println("exit");
-			    return;
-			}
-			
-			System.out.write(d);
-			if ((d & 0xC0) != 0x80)
-			    System.out.flush();
+		    final int width = Integer.parseInt(Properties.getProperty(Property.COLS));
 		    
-			if (ptr == buf.length)
-			{
-			    final byte[] nbuf = new byte[ptr << 1];
-			    System.arraycopy(buf, 0, nbuf, 0, ptr);
-			    buf = nbuf;
-			}
-			buf[ptr++] = (byte)d;
-		    }
-		    System.out.println();
-		    
-		    final String command = new String(buf, 0, ptr, "UTF-8");
+		    final String command = lineReader.read(2, width);
+		    if (command == null)
+			return;
 		    if (command.startsWith("?"))
 			System.out.println(Properties.env.get(command.substring(1)));
 		    else
