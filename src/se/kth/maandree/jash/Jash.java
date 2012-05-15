@@ -39,6 +39,8 @@ public class Jash
     public static void main(final String... args)
     {
 	System.out.print("\033[?1049h");
+	System.out.print("\033%G");
+	System.out.flush();
 	final String stty = Properties.getProperty(Property.STTY);
 	Properties.execSystemProperty(LineRule.BREAK, "stty -icanon -echo -isig -ixon -ixoff".split(" "));
 	try
@@ -97,6 +99,7 @@ public class Jash
 	{
 	    Properties.execSystemProperty(LineRule.BREAK, ("stty " + stty).split(" "));
 	    System.out.print("\033[?1049l");
+	    System.out.flush();
 	}
     }
     
