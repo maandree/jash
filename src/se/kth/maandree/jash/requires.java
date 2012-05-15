@@ -33,7 +33,7 @@ import java.lang.annotation.*;
 public @interface requires
 {
     /**
-     * System dependency
+     * System dependencies
      */
     public String[] value();
 
