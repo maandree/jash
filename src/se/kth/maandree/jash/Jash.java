@@ -84,6 +84,8 @@ public class Jash
 			System.out.println(Properties.env.get(command.substring(1)));
 		    else
 			exec(command);
+		    
+		    Properties.execSystemProperty(LineRule.BREAK, "stty -icanon -echo -isig -ixon -ixoff".split(" "));
 		}
 		catch (final IOException err)
 		{
