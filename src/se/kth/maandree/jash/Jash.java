@@ -85,9 +85,11 @@ public class Jash
 		    if (command.startsWith("?"))
 			System.out.println(Properties.env.get(command.substring(1)));
 		    else
+		    {
+			Properties.execSystemProperty(LineRule.BREAK, "stty icanon echo isig".split(" "));
 			exec(command);
-		    
-		    Properties.execSystemProperty(LineRule.BREAK, "stty -icanon -echo -isig -ixon -ixoff".split(" "));
+			Properties.execSystemProperty(LineRule.BREAK, "stty -icanon -echo -isig -ixon -ixoff".split(" "));
+		    }
 		}
 		catch (final IOException err)
 		{
