@@ -193,12 +193,16 @@ public class LineReader implements LineReaderInterface
 			}
 			readData.bp[readData.before++] = c;
 			System.out.write(decode(c));
-			if (readData.after > 0)  //OVERRIDE MODE
-			    readData.after--;
-			//System.out.print("\0337");  //INSERT MODE
-			//for (int i = readData.after - 1; i >= 0; i--)
-			//    System.out.write(decode(readData.ap[i]));
-			//System.out.print("\0338");
+			if (readData.privateUse.containsKey("insert")) //insert
+			{
+			    System.out.print("\0337");
+			    for (int i = readData.after - 1; i >= 0; i--)
+			        System.out.write(decode(readData.ap[i]));
+			    System.out.print("\0338");
+			}
+			else //override
+			    if (readData.after > 0)
+				readData.after--;
 			System.out.flush();
 		    }
 		    break;
@@ -257,11 +261,20 @@ public class LineReader implements LineReaderInterface
 			    break;
 			    
 			case '2':  //INS
-			    ;
+			    if (readData.privateUse.containsKey("insert"))
+				readData.privateUse.remove("insert");
+			    else
+				readData.privateUse.put("insert", null);
 			    break;
 			    
 			case '3':  //DEL
-			    ;
+			    if (readData.after > 0)
+			    {
+				for (int i = --readData.after - 1; i >= 0; i--)
+				    System.out.write(readData.ap[i]);
+				System.out.print(" \033[" + (readData.after + 1) + "D");
+				System.out.flush();
+			    }
 			    break;
 			    
 			case '4':  //END
