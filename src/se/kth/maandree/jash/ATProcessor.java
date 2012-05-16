@@ -157,6 +157,13 @@ public class ATProcessor extends AbstractProcessor
         return true;
     }
     
+    /**
+     * Tests whether a version string is greater than another
+     * 
+     * @param   a  The version sting that should be greater
+     * @param   b  The version sting that should be less
+     * @return     Whether the test passed
+     */
     private boolean isGreater(final String a, final String b)
     {
 	if (b == null)
@@ -236,6 +243,13 @@ public class ATProcessor extends AbstractProcessor
 	return A.length > B.length;
     }
     
+    /**
+     * Tests whether a version string is less than another
+     * 
+     * @param   a  The version sting that should be less
+     * @param   b  The version sting that should be greater
+     * @return     Whether the test passed
+     */
     private boolean isLess(final String a, final String b)
     {
 	if (b == null)
@@ -243,11 +257,17 @@ public class ATProcessor extends AbstractProcessor
 	return isGreater(b, a);
     }
     
+    /**
+     * Checks the annotations on the top level elements
+     * 
+     * @param  elems   The elements
+     * @param  reqout  List in which to put all @requires strings
+     */
     private void checkElements(Set<? extends Element> elems, final ArrayList<String> reqout)
-    { 
+    {
         for (final Element elem : elems)
         {
-            final requires reqs = elem.getAnnotation(requires.class);
+            requires reqs = elem.getAnnotation(requires.class);
             if (reqs != null)
             {
 		System.out.println(elem + " requires:");
@@ -260,7 +280,14 @@ public class ATProcessor extends AbstractProcessor
             checkElements(elem.getEnclosedElements(), elem + ".", reqout);
         }
     }
-
+    
+    /**
+     * Checks the annotations on enclosed elements
+     * 
+     * @param  elems   The elements
+     * @param  parent  The parent element with a dot in the end
+     * @param  reqout  List in which to put all @requires strings
+     */
     private void checkElements(List<? extends Element> elems, String parent, final ArrayList<String> reqout)
     {
         for (final Element elem : elems)
