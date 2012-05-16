@@ -132,6 +132,8 @@ public class LineReader implements LineReaderInterface
      */
     public class BaseState implements State
     {
+	//Has default constructor
+	
 	/**
 	 * {@inheritDoc}
 	 */
@@ -167,6 +169,7 @@ public class LineReader implements LineReaderInterface
 		    break;
 		    
 		case '\033':
+		    readData.stateStack.offerLast(new ESCState());
 		    break;
 		    
 		default:
@@ -206,6 +209,87 @@ public class LineReader implements LineReaderInterface
     }
     
     
+    /**
+     * Escape sequence reading state
+     * 
+     * @author  Mattias Andrée, <a href="mailto:maandree@kth.se">maandree@kth.se</a>
+     */
+    public class ESCState implements State
+    {
+	//Has default constructor
+	
+	
+	
+	/**
+	 * The last parsed character in this state
+	 */
+	private int last = -1;
+	
+	
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	public boolean read(final int c, final ReadData readData) throws IOException
+	{
+	    if (last == '[')
+		switch (c)
+		{
+		    case 'A':  //UP
+			//TODO history
+			break;
+			
+		    case 'B':  //DOWN
+			//TODO history
+			break;
+			
+		    case 'C':  //RIGHT
+			if (readData.after > 0)
+			{
+			    System.out.print("\033[C");
+			    System.out.flush();
+			    readData.bp[readData.before++] = readData.ap[--readData.after];
+			}
+			break;
+			
+		    case 'D':  //LEFT
+			if (readData.before > 0)
+			{
+			    System.out.print("\033[D");
+			    System.out.flush();
+			    if (readData.after == readData.ap.length)
+			    {
+				int[] tmp = new int[readData.after << 1];
+				System.arraycopy(readData.ap, 0, tmp, 0, readData.after);
+				readData.ap = tmp;
+			    }
+			    readData.ap[readData.after++] = readData.bp[--readData.before];
+			}
+			break;
+			
+		    default:
+			readData.stored = c;
+			readData.stateStack.pollLast();
+			break;
+		}
+	    else
+		switch (c)
+		{
+		    case '[':
+			break;
+			
+		    default:
+			readData.stored = c;
+			readData.stateStack.pollLast();
+			break;
+		}
+	    
+	    this.last = c;
+	    return false;
+	}
+    }
+    
+    
     
     /**
      * {@inheritDoc}
@@ -217,25 +301,25 @@ public class LineReader implements LineReaderInterface
 	
 	final PrintStream stdout = System.out;
 	System.setOut(new PrintStream(new OutputStream()
-	    {
-		public void write(final int b) throws IOException
-		{
-		    if ((0 <= b) && (b < ' ') && (b != '\n') && (b != '\033'))
+	        {
+		    public void write(final int b) throws IOException
 		    {
-			stdout.print("\033[3m");
-			stdout.write(b + '@');
-			stdout.print("\033[23m");
+			if ((0 <= b) && (b < ' ') && (b != '\n') && (b != '\033'))
+			{
+			    stdout.print("\033[3m");
+			    stdout.write(b + '@');
+			    stdout.print("\033[23m");
+			}
+			else
+			    stdout.write(b);
 		    }
-		    else
-			stdout.write(b);
-		}
-		
-		public void flush() throws IOException
-		{
-		    stdout.flush();
-		}
-	    }
-	    ));
+		    
+		    public void flush() throws IOException
+		    {
+			stdout.flush();
+		    }
+	        }
+		));
 	
 	try
 	{
