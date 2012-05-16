@@ -35,9 +35,9 @@ public class LineReader implements LineReaderInterface
     
     
     /**
-     * Small buffer array for {@link #decode(int)}
+     * Small buffer array for {@link #encode(int)}
      */
-    private static final byte[] decodeBuf = new byte[8];
+    private static final byte[] encodeBuf = new byte[8];
     
     
     
@@ -134,6 +134,8 @@ public class LineReader implements LineReaderInterface
     {
 	//Has default constructor
 	
+	
+	
 	/**
 	 * {@inheritDoc}
 	 */
@@ -152,7 +154,7 @@ public class LineReader implements LineReaderInterface
 		    for (int i = readData.after - 1, j = readData.before; i >= 0; i--, j++)
 			tmp[j] = readData.ap[i]; 
 			
-		    readData.returnValue = decode(tmp, 0, readData.before + readData.after);
+		    readData.returnValue = encode(tmp, 0, readData.before + readData.after);
 		    return true;
 		    
 		case '\b':
@@ -162,7 +164,7 @@ public class LineReader implements LineReaderInterface
 			readData.before--;
 			System.out.print("\033[D\0337");
 			for (int i = readData.after - 1; i >= 0; i--)
-			    System.out.write(decode(readData.ap[i]));
+			    System.out.write(encode(readData.ap[i]));
 			System.out.print(" \0338");
 			System.out.flush();
 		    }
@@ -192,12 +194,12 @@ public class LineReader implements LineReaderInterface
 			    readData.bp = tmp;
 			}
 			readData.bp[readData.before++] = c;
-			System.out.write(decode(c));
+			System.out.write(encode(c));
 			if (readData.privateUse.containsKey("insert")) //insert
 			{
 			    System.out.print("\0337");
 			    for (int i = readData.after - 1; i >= 0; i--)
-			        System.out.write(decode(readData.ap[i]));
+			        System.out.write(encode(readData.ap[i]));
 			    System.out.print("\0338");
 			}
 			else //override
@@ -422,18 +424,26 @@ public class LineReader implements LineReaderInterface
 	final PrintStream stdout = System.out;
 	System.setOut(new PrintStream(new OutputStream()
 	        {
+		    /**
+		     * {@inheritDoc}
+		     */
+		    @Override
 		    public void write(final int b) throws IOException
 		    {
 			if ((0 <= b) && (b < ' ') && (b != '\n') && (b != '\033'))
 			{
-			    stdout.print("\033[3m");
+			    stdout.print("\033[3m"); //Make italic
 			    stdout.write(b + '@');
-			    stdout.print("\033[23m");
+			    stdout.print("\033[23m"); //(unitalic)
 			}
 			else
 			    stdout.write(b);
 		    }
 		    
+		    /**
+		     * {@inheritDoc}
+		     */
+		    @Override
 		    public void flush() throws IOException
 		    {
 			stdout.flush();
@@ -501,7 +511,7 @@ public class LineReader implements LineReaderInterface
      * @param   character  UTF-32 character
      * @return             UTF-8 character
      */
-    public static byte[] decode(final int character)
+    public static byte[] encode(final int character)
     {
 	if (character < 0x80)
 	    return new byte[] { (byte)character };
@@ -511,26 +521,26 @@ public class LineReader implements LineReaderInterface
 	while (c != 0)
 	{
 	    if (n > 0)
-		decodeBuf[n - 1] |= 0x80;
-	    decodeBuf[n++] = (byte)(c & 0x3F);
+		encodeBuf[n - 1] |= 0x80;
+	    encodeBuf[n++] = (byte)(c & 0x3F);
 	    c >>>= 6;
 	}
 	
 	int cm = 0xFF ^ ((1 << (7 - n)) - 1);
 	
-	if ((cm & decodeBuf[n - 1]) == 0)
+	if ((cm & encodeBuf[n - 1]) == 0)
 	    n--;
 	else
 	{
-	    decodeBuf[n - 1] |= 0x80;
+	    encodeBuf[n - 1] |= 0x80;
 	    cm |= cm >> 1;
 	}
 	
-	decodeBuf[n++] |= (byte)(cm << 1);
+	encodeBuf[n++] |= (byte)(cm << 1);
 	
 	final byte[] rc = new byte[n--];
 	for (int i = 0; i <= n; i++)
-	    rc[n - i] = decodeBuf[i];
+	    rc[n - i] = encodeBuf[i];
 	return rc;
     }
     
@@ -541,9 +551,9 @@ public class LineReader implements LineReaderInterface
      * @param   character  UTF-32 <code>int[]</code> character string
      * @return             UTF-16 {@link String} character string
      */
-    public static String decode(final int[] string)
+    public static String encode(final int[] string)
     {
-	return decode(string, 0, string.length);
+	return encode(string, 0, string.length);
     }
     
     
@@ -555,7 +565,7 @@ public class LineReader implements LineReaderInterface
      * @param   len        The number of characers
      * @return             UTF-16 {@link String} character string
      */
-    public static String decode(final int[] string, final int off, final int len)
+    public static String encode(final int[] string, final int off, final int len)
     {
 	final char[] chars = new char[len << 1];
 	int ptr = 0;
