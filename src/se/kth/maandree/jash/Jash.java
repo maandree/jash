@@ -33,6 +33,16 @@ import java.io.*;
 public class Jash
 {
     /**
+     * Non-constructor
+     */
+    private Jash()
+    {
+	assert false : "You are not meant to create instances of the class [Jash].";
+    }
+    
+    
+    
+    /**
      * The is the main entry point of the program
      * 
      * @param  args  Startup arguments
