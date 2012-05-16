@@ -266,7 +266,6 @@ public class LineReader implements LineReaderInterface
 			    }
 			    readData.ap[readData.after++] = readData.bp[--readData.before];
 			}
-			readData.stateStack.pollLast();
 			break;
 			
 		    default:
