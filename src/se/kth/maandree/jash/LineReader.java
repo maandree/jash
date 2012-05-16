@@ -19,6 +19,8 @@
 package se.kth.maandree.jash;
 
 import java.io.*;
+import java.util.HashMap;
+import java.util.ArrayDeque;
 
 
 /**
@@ -40,82 +42,125 @@ public class LineReader implements LineReaderInterface
     
     
     /**
-     * {@inheritDoc}
+     * Data needed for reading input
+     * 
+     * @author  Mattias Andrée, <a href="mailto:maandree@kth.se">maandree@kth.se</a>
      */
-    public String read(final int x, final int width) throws IOException
+    final class ReadData
     {
-	final int BUFSIZE = 64;
+	/**
+	 * The initial size of the buffers
+	 */
+	public static final int BUFSIZE = 64;
 	
-	int[] bp = new int[BUFSIZE];
-	int[] ap = new int[BUFSIZE];
-	int[] tmp;
 	
-	int before = 0;
-	int after = 0;
-	int stored = -1;
 	
-	for (int c;;)
+	//Has default constructor
+	
+	
+	
+	/**
+	 * The character before the cursor
+	 */
+	public int[] bp = new int[BUFSIZE];
+	
+	/**
+	 * The characters after the cursor
+	 */
+	public int[] ap = new int[BUFSIZE];
+	
+	/**
+	 * The number of characters before the cursor
+	 */
+	public int before = 0;
+	
+	/**
+	 * The number of characters after the cursor
+	 */
+	public int after = 0;
+	
+	/**
+	 * A byte polled from the input by mistake, <code>-1</code> if none
+	 */
+	public int stored = -1;
+	
+	/**
+	 * The text entered by the user
+	 */
+	public String returnValue = null;
+	
+	/**
+	 * <p>Do what ever you what ever, just do mess up some other state's data without permission.</p>
+	 * <p>
+	 *   Raw {@link Object}s are recommened for unshared data
+	 * </p>
+	 */
+	public final HashMap<Object, Object> privateUse = new HashMap<Object, Object>();
+	
+	/**
+	 * Stack with states in use, the last on is the currently active one
+	 */
+	@requires("java-runtime>=6")
+	public final ArrayDeque<State> stateStack = new ArrayDeque<State>(); //Oooh how I wish this was multi-popable...
+    }
+    
+    
+    /**
+     * Reading state interface
+     * 
+     * @author  Mattias Andrée, <a href="mailto:maandree@kth.se">maandree@kth.se</a>
+     */
+    interface State
+    {
+	/**
+	 * Reads one character
+	 * 
+	 * @param   c         The character
+	 * @param   readData  Data needed for reading input, update the values while you read
+	 * @return            Whether the reading is complete, e.g. when the user presses Enter
+	 * 
+	 * @throws  IOException  Writing problem?
+	 */
+	public boolean read(final int c, final ReadData readData) throws IOException;
+    }
+    
+    
+    /**
+     * Base reading state, it handles all single character input sequences
+     * 
+     * @author  Mattias Andrée, <a href="mailto:maandree@kth.se">maandree@kth.se</a>
+     */
+    public class BaseState implements State
+    {
+	/**
+	 * {@inheritDoc}
+	 */
+	public boolean read(final int c, final ReadData readData) throws IOException
 	{
-	    if (stored == -1)
-	    {
-		c = System.in.read();
-		if (c == -1)
-		    return null;
-	    }
-	    else
-	    {
-		c = stored;
-		stored = -1;
-	    }
-	    
-	    if ((c & 0x80) == 0x80)
-		if ((c & 0xC0) == 0x80)
-		    System.err.println("WTF, this is not UTF-8!");
-		else
-		{
-		    int n = 0;
-		    int t = c;
-		    while ((t & 0x80) == 0x80)
-		    {
-			t <<= 1;
-			n++;
-		    }
-		    c = (t & 0xFF) >> n;
-		    for (int i = 1; i < n; i++)
-		    {
-			t = System.in.read();
-			if ((t & 0xC0) != 0x80)
-			{
-			    System.err.println("WTF, this is not UTF-8!");
-			    stored = t;
-			    break;
-			}
-			c <<= 6;
-			c |= t & 0x7F;
-		    }
-		}
+	    int[] tmp;
 	    
 	    switch (c)
 	    {
 		case '\n':
 		    System.out.write(c);
 		    System.out.flush();
+		    
+		    tmp = new int[readData.before + readData.after];
+		    System.arraycopy(readData.bp, 0, tmp, 0, readData.before);
+		    for (int i = readData.after - 1, j = readData.before; i >= 0; i--, j++)
+			tmp[j] = readData.ap[i]; 
 			
-		    tmp = new int[before + after];
-		    System.arraycopy(bp, 0, tmp, 0, before);
-		    for (int i = after - 1, j = before; i >= 0; i--, j++)
-			tmp[j] = ap[i]; 
-			
-		    return decode(tmp, 0, before + after);
+		    readData.returnValue = decode(tmp, 0, readData.before + readData.after);
+		    return true;
 		    
 		case '\b':
 		case 127:
-		    if (before > 0)
+		    if (readData.before > 0)
 		    {
-			before--;
+			readData.before--;
 			System.out.print("\033[D\0337");
-			for (int i = after - 1; i >= 0; i--)
-			    System.out.write(decode(ap[i]));
+			for (int i = readData.after - 1; i >= 0; i--)
+			    System.out.write(decode(readData.ap[i]));
 			System.out.print(" \0338");
 			System.out.flush();
 		    }
@@ -125,37 +170,125 @@ public class LineReader implements LineReaderInterface
 		    break;
 		    
 		default:
-		    if (c < ' ')
+		    if (c == 0)
 		    {
-			if (c == 'D' - '@')
-			{
-			    System.out.println("exit");
-			    return null;
-			}
+			//Ignore this (sometimes) bogus input
+		    }
+		    else if (c == 'D' - '@')
+		    {
+			System.out.println(); //exit
+			readData.returnValue = null;
+			return true;
 		    }
 		    else
 		    {
-			if (before == bp.length)
+			if (readData.before == readData.bp.length)
 			{
-			    tmp = new int[bp.length << 1];
-			    System.arraycopy(bp, 0, tmp, 0, bp.length);
-			    bp = tmp;
+			    tmp = new int[readData.bp.length << 1];
+			    System.arraycopy(readData.bp, 0, tmp, 0, readData.bp.length);
+			    readData.bp = tmp;
 			}
-			bp[before++] = c;
+			readData.bp[readData.before++] = c;
 			System.out.write(decode(c));
-			if (after > 0)  //OVERRIDE MODE
-			    after--;
+			if (readData.after > 0)  //OVERRIDE MODE
+			    readData.after--;
 			//System.out.print("\0337");  //INSERT MODE
-			//for (int i = after - 1; i >= 0; i--)
-			//    System.out.write(decode(ap[i]));
+			//for (int i = readData.after - 1; i >= 0; i--)
+			//    System.out.write(decode(readData.ap[i]));
 			//System.out.print("\0338");
 			System.out.flush();
 		    }
 		    break;
 	    }
+	    
+	    return false;
 	}
     }
     
+    
+    
+    /**
+     * {@inheritDoc}
+     */
+    public String read(final int x, final int width) throws IOException
+    {
+	final ReadData readData = new ReadData();
+	readData.stateStack.offerLast(new BaseState());
+	
+	final PrintStream stdout = System.out;
+	System.setOut(new PrintStream(new OutputStream()
+	    {
+		public void write(final int b) throws IOException
+		{
+		    if ((0 <= b) && (b < ' ') && (b != '\n') && (b != '\033'))
+		    {
+			stdout.print("\033[3m");
+			stdout.write(b + '@');
+			stdout.print("\033[23m");
+		    }
+		    else
+			stdout.write(b);
+		}
+		
+		public void flush() throws IOException
+		{
+		    stdout.flush();
+		}
+	    }
+	    ));
+	
+	try
+	{
+	    for (int c;;)
+	    {
+		if (readData.stored == -1)
+		{
+		    c = System.in.read();
+		    if (c == -1)
+			return null;
+		}
+		else
+		{
+		    c = readData.stored;
+		    readData.stored = -1;
+		}
+	    
+		if ((c & 0x80) == 0x80)
+		    if ((c & 0xC0) == 0x80)
+			System.err.println("WTF, this is not UTF-8!");
+		    else
+		    {
+			int n = 0;
+			int t = c;
+			while ((t & 0x80) == 0x80)
+			{
+			    t <<= 1;
+			    n++;
+			}
+			c = (t & 0xFF) >> n;
+			for (int i = 1; i < n; i++)
+			{
+			    t = System.in.read();
+			    if ((t & 0xC0) != 0x80)
+			    {
+				System.err.println("WTF, this is not UTF-8!");
+				readData.stored = t;
+				break;
+			    }
+			    c <<= 6;
+			    c |= t & 0x7F;
+			}
+		    }
+	    
+		if (readData.stateStack.peekLast().read(c, readData))
+		    return readData.returnValue;
+	    }
+	}
+	finally
+	{
+	    System.setOut(stdout);
+	}
+    }
     
     
     /**
@@ -197,6 +330,7 @@ public class LineReader implements LineReaderInterface
 	return rc;
     }
     
+    
     /**
      * Converts a character string from UTF-32 to UTF-16
      * 
@@ -207,6 +341,7 @@ public class LineReader implements LineReaderInterface
     {
 	return decode(string, 0, string.length);
     }
+    
     
     /**
      * Converts a character string from UTF-32 to UTF-16

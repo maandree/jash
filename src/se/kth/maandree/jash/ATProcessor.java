@@ -295,14 +295,17 @@ public class ATProcessor extends AbstractProcessor
             requires reqs = elem.getAnnotation(requires.class);
             if (reqs != null)
             {
-		System.out.println(elem + " requires:");
+		System.out.println(parent + elem + " requires:");
 		for (final String req : reqs.value())
 		{
 		    System.out.println("  " + req);
 		    reqout.add(req);
 		}
             }
-            checkElements(elem.getEnclosedElements(), parent + elem + ".", reqout);
+	    if (elem.getClass().toString().endsWith("$ClassSymbol"))
+		checkElements(elem.getEnclosedElements(), elem + ".", reqout);
+	    else
+		checkElements(elem.getEnclosedElements(), parent + elem + ".", reqout);
         }
     }
 }
