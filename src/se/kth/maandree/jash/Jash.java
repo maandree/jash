@@ -19,6 +19,7 @@
 package se.kth.maandree.jash;
 import se.kth.maandree.jash.Properties.LineRule;
 import se.kth.maandree.jash.Properties.Property;
+import se.kth.maandree.jash.lineread.*;
 
 import java.util.*;
 import java.io.*;
@@ -119,15 +120,6 @@ public class Jash
 	    final Set<String> vars = Properties.env.keySet();
 	    for (final String var : vars)
 		penv.put(var, Properties.env.get(var));
-	    
-	    try
-	    {
-		penv.put("SHLVL", Integer.toString(Integer.parseInt(Properties.env.get("SHLVL")) + 1));
-	    }
-	    catch (final Throwable err)
-	    {
-		penv.put("SHLVL", "1");
-	    }
 	    
 	    final Process process = procBuilder.start();
 	    
