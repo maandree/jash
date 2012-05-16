@@ -372,6 +372,7 @@ public class LineReader implements LineReaderInterface
     {
 	final ReadData readData = new ReadData();
 	readData.stateStack.offerLast(new BaseState());
+	readData.privateUse.put("insert", null);
 	
 	final PrintStream stdout = System.out;
 	System.setOut(new PrintStream(new OutputStream()
