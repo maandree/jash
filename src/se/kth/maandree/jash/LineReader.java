@@ -233,6 +233,7 @@ public class LineReader implements LineReaderInterface
 	public boolean read(final int c, final ReadData readData) throws IOException
 	{
 	    if (last == '[')
+	    {
 		switch (c)
 		{
 		    case 'A':  //UP
@@ -265,13 +266,15 @@ public class LineReader implements LineReaderInterface
 			    }
 			    readData.ap[readData.after++] = readData.bp[--readData.before];
 			}
+			readData.stateStack.pollLast();
 			break;
 			
 		    default:
 			readData.stored = c;
-			readData.stateStack.pollLast();
 			break;
 		}
+		readData.stateStack.pollLast();
+	    }
 	    else
 		switch (c)
 		{
