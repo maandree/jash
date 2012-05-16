@@ -232,7 +232,57 @@ public class LineReader implements LineReaderInterface
 	 */
 	public boolean read(final int c, final ReadData readData) throws IOException
 	{
-	    if (last == '[')
+	    if (('1' <= last) && (last <= '4'))
+		if (c != '~')
+		    readData.stateStack.pollLast();
+		else
+		    switch (last)
+		    {
+			case '1':  //HOME
+			    if (readData.before > 0)
+			    {
+				System.out.print("\033[" + readData.before + "D");
+				System.out.flush();
+				while (readData.before != 0)
+				{
+				    if (readData.after == readData.ap.length)
+				    {
+					int[] tmp = new int[readData.after << 1];
+					System.arraycopy(readData.ap, 0, tmp, 0, readData.after);
+					readData.ap = tmp;
+				    }
+				    readData.ap[readData.after++] = readData.bp[--readData.before];
+				}
+			    }
+			    break;
+			    
+			case '2':  //INS
+			    ;
+			    break;
+			    
+			case '3':  //DEL
+			    ;
+			    break;
+			    
+			case '4':  //END
+			    if (readData.after > 0)
+			    {
+				System.out.print("\033[" + readData.after + "C");
+				System.out.flush();
+				while (readData.after != 0)
+				{
+				    if (readData.before == readData.bp.length)
+				    {
+					int[] tmp = new int[readData.before << 1];
+					System.arraycopy(readData.bp, 0, tmp, 0, readData.before);
+					readData.bp = tmp;
+				    }
+				    readData.bp[readData.before++] = readData.ap[--readData.after];
+				}
+			    }
+			    break;
+		    }
+	    else if (last == '[')
 	    {
 		switch (c)
 		{
@@ -249,6 +299,12 @@ public class LineReader implements LineReaderInterface
 			{
 			    System.out.print("\033[C");
 			    System.out.flush();
+			    if (readData.before == readData.bp.length)
+			    {
+				int[] tmp = new int[readData.before << 1];
+				System.arraycopy(readData.bp, 0, tmp, 0, readData.before);
+				readData.bp = tmp;
+			    }
 			    readData.bp[readData.before++] = readData.ap[--readData.after];
 			}
 			break;
@@ -268,11 +324,14 @@ public class LineReader implements LineReaderInterface
 			}
 			break;
 			
-		    default:
-			readData.stored = c;
-			break;
+		    case '1':  //HOME
+		    case '2':  //INS
+		    case '3':  //DEL
+		    case '4':  //END
+			this.last = c;
+			return false; //no poping
 		}
-		readData.stateStack.pollLast();
+		readData.stateStack.pollLast(); //pop
 	    }
 	    else
 		switch (c)
