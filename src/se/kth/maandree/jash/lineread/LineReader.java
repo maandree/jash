@@ -416,34 +416,7 @@ public class LineReader implements LineReaderInterface
 	readData.privateUse.put("insert", null);
 	
 	final PrintStream stdout = System.out;
-	System.setOut(new PrintStream(new OutputStream()
-	        {
-		    /**
-		     * {@inheritDoc}
-		     */
-		    @Override
-		    public void write(final int b) throws IOException
-		    {
-			if ((0 <= b) && (b < ' ') && (b != '\n') && (b != '\033'))
-			{
-			    stdout.print("\033[3m"); //Make italic
-			    stdout.write(b + '@');
-			    stdout.print("\033[23m"); //(unitalic)
-			}
-			else
-			    stdout.write(b);
-		    }
-		    
-		    /**
-		     * {@inheritDoc}
-		     */
-		    @Override
-		    public void flush() throws IOException
-		    {
-			stdout.flush();
-		    }
-	        }
-		));
+	System.setOut(new PrintStream(new AnyCharacterOutputStream(stdout)));
 	
 	try
 	{
