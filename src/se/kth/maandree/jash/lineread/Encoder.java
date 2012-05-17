@@ -127,7 +127,7 @@ public class Encoder
 	    }
 	    else
 	    {
-		System.err.println("WTF, this plane those not exist!");
+		System.err.println("WTF, this plane does not exist!");
 		chars[ptr++] = 0xFFFD;
 	    }
 	
