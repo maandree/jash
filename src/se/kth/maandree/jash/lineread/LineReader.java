@@ -416,7 +416,11 @@ public class LineReader implements LineReaderInterface
 	readData.privateUse.put("insert", null);
 	
 	final PrintStream stdout = System.out;
-	System.setOut(new PrintStream(new AnyCharacterOutputStream(stdout)));
+	System.setOut(new PrintStream(
+			new AnyCharacterOutputStream(
+			  new LineWrappingOutputStream(
+			    stdout, x, width
+		      ) ) ) );
 	
 	try
 	{

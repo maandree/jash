@@ -70,11 +70,11 @@ public class AnyCharacterOutputStream extends OutputStream
     {
 	if ((0 <= b) && (b < ' ') && (b != '\n') && (b != '\033'))
 	{
-	    italic[4] = (byte)(b + '@');
-	    next.write(italic);
+	    this.italic[4] = (byte)(b + '@');
+	    this.next.write(italic);
 	}
 	else
-	    next.write(b);
+	    this.next.write(b);
     }
     
     /**
@@ -83,7 +83,7 @@ public class AnyCharacterOutputStream extends OutputStream
     @Override
     public void flush() throws IOException
     {
-	next.flush();
+	this.next.flush();
     }
     
 }
