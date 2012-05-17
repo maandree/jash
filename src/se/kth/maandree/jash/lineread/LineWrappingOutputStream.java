@@ -95,6 +95,16 @@ public class LineWrappingOutputStream extends OutputStream
      */
     private int csiNum = 0;
     
+    /**
+     * The current CSI escape sequence
+     */
+    private byte[] csiBuf = {(byte)'\033', (byte)'[', 0, 0, 0, 0, 0, 0};
+    
+    /**
+     * Pointer for {@link #csiBuf}
+     */
+    private int csiPtr = 2;
+    
     
     
     /**
@@ -105,7 +115,14 @@ public class LineWrappingOutputStream extends OutputStream
     {
 	if (this.csi)
 	{
-	    this.next.write(b);
+	    if (this.csiPtr == this.csiBuf.length)
+	    {
+		final byte[] nbuf = new byte[this.csiPtr + 8];
+		System.arraycopy(this.csiBuf, 0, nbuf, 0, this.csiPtr);
+		this.csiBuf = nbuf;
+	    }
+	    this.csiBuf[this.csiPtr++] = (byte)b;
+	    
 	    if (('0' <= b) && (b <= '9'))
 	    {
 		if (this.csiNum <= 0)
@@ -114,26 +131,62 @@ public class LineWrappingOutputStream extends OutputStream
 	    else if ((('a' <= b) && (b <= 'z')) || (('A' <= b) && (b <= 'Z')))
 	    {
 		this.csiNum = -this.csiNum;
-		if (this.csiNum >= 0)
+		if (this.csiNum <= 0)
 		    this.csiNum = 1;
 		this.csi = false;
+		final int xx = this.x;
 		switch (b)
-	        {
-		    case 'C':
+		{
+		    case 'C': // RIGHT / END
+			if (this.csiNum >= this.width)
+			{
+			    final int dy = this.csiNum / this.width;
+			    this.csiNum %= this.width;
+			    this.y += dy;
+			    this.next.write(("\033[" + dy + "B").getBytes("UTF-8"));
+			}
 			this.x += this.csiNum;
-			while (this.x == this.width)
-			    this.write('\n');
+			if (this.x >= this.width)
+			{
+			    this.x -= this.width;
+			    this.y++;
+			    this.next.write(("\033[B\033[" + this.width + "D\033[" + this.x + "C").getBytes("UTF-8"));
+			}
+			else
+			    this.next.write(("\033[" + this.csiNum + "C").getBytes("UTF-8"));
 			break;
 			
-		    case 'D':
-			this.x -= this.csiNum;
-			if ((this.y == 0) && (this.x < this.startX))
-			    this.x = this.startX;
-			else if (this.x < 0)
+		    case 'D': // LEFT / HOME
+			if (this.csiNum >= this.width)
 			{
-			    this.y--;
-			    this.next.write(("\033[A\033[" + (this.x = this.width - 1) + "C").getBytes("UTF-8"));
+			    final int dy = this.csiNum / this.width;
+			    this.csiNum %= this.width;
+			    this.y -= dy;
+			    this.next.write(("\033[" + dy + "A").getBytes("UTF-8"));
 			}
+			this.x -= this.csiNum;
+			if (this.x < 0)
+			{
+			    this.x += this.width;
+			    this.y--;
+			    this.next.write(("\033[A\033[" + (this.width - xx) + "D\033[" + this.x + "C").getBytes("UTF-8"));
+			}
+			else
+			    this.next.write(("\033[" + this.csiNum + "D").getBytes("UTF-8"));
+			break;
+		    
+		    case 'A': //UP
+			this.next.write(this.csiBuf, 0, this.csiPtr);
+			this.y -= this.csiNum;
+			break;
+			
+		    case 'B': //DOWN
+			this.next.write(this.csiBuf, 0, this.csiPtr);
+			this.y += this.csiNum;
+			break;
+			
+		    default:
+			this.next.write(this.csiBuf, 0, this.csiPtr);
 			break;
 		}
 	    }
@@ -147,27 +200,31 @@ public class LineWrappingOutputStream extends OutputStream
 	    {
 		this.csi = true;
 		this.csiNum = 0;
-		this.next.write(b);
+		this.csiPtr = 2;
 	    }
 	    else if (b == '7')
 	    {
 		this.storedX = this.x;
 		this.storedY = this.y;
+		this.next.write('\033');
 		this.next.write(b);
 	    }
 	    else if (b == '8')
 	    {
 		this.x = this.storedX;
 		this.y = this.storedY;
+		this.next.write('\033');
 		this.next.write(b);
 	    }
 	    else
+	    {
+		this.next.write('\033');
 		this.write(b);
+	    }
 	}
 	else if (b == '\033')
 	{
 	    this.esc = true;
-	    this.next.write(b);
 	}
 	else if (b == '\n')
 	{
