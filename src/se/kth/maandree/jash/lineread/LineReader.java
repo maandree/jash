@@ -175,7 +175,7 @@ public class LineReader implements LineReaderInterface
 		    }
 		    else if (c == 'D' - '@')
 		    {
-			System.out.println(); //exit
+			System.out.println((char)c);
 			readData.returnValue = null;
 			return true;
 		    }
