@@ -22,7 +22,7 @@ import java.io.*;
 
 
 /**
- * Output stream that make control character italic
+ * Output stream that wraps the output into lines
  * 
  * @author  Mattias Andrée, <a href="mailto:maandree@kth.se">maandree@kth.se</a>
  */
