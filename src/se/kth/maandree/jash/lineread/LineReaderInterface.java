@@ -41,5 +41,12 @@ public interface LineReaderInterface
      */
     public String read(final int x, final int width) throws IOException;
     
+    /**
+     * Sets the instance handling line history
+     * 
+     * @param  history  The instance handling line history
+     */
+    public void setHistory(final LineHistoryInterface history)
+    
 }
 

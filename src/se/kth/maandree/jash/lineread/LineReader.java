@@ -36,6 +36,13 @@ public class LineReader implements LineReaderInterface
     
     
     /**
+     * Line history interface
+     */
+    private LineHistoryInterface history = null;
+    
+    
+    
+    /**
      * Data needed for reading input
      * 
      * @author  Mattias Andrée, <a href="mailto:maandree@kth.se">maandree@kth.se</a>
@@ -96,6 +103,39 @@ public class LineReader implements LineReaderInterface
 	 */
 	@requires("java-runtime>=6")
 	public final ArrayDeque<State> stateStack = new ArrayDeque<State>(); //Oooh how I wish this was multi-popable...
+	
+	
+	
+	/**
+	 * Returns an integer array from read data
+	 * 
+	 * @return  The integer array
+	 */
+	public int[] get()
+	{
+	    final int rc = new int[this.before + this.after];
+	    System.arraycopy(this.bp, 0, rc, 0, this.before);
+	    for (int i = this.after - 1, j = this.before; i >= 0; i--, j++)
+		rc[j] = this.ap[i];
+	    return rc;
+	}
+	
+	/**
+	 * Sets read data from an integer array
+	 * 
+	 * @param  data  The integer array
+	 */
+	public void set(final int[] data)
+	{
+	    if (data == null)
+		return;
+	    
+	    if (this.bp.length < data.length)
+		this.bp = new int[(data.length | (BUFSIZE - 1)) + 1];
+	    
+	    System.arraycopy(data, 0, bp, 0, this.before = data.length);
+	    this.after = 0;
+	}
     }
     
     
@@ -147,7 +187,10 @@ public class LineReader implements LineReaderInterface
 		    System.arraycopy(readData.bp, 0, tmp, 0, readData.before);
 		    for (int i = readData.after - 1, j = readData.before; i >= 0; i--, j++)
 			tmp[j] = readData.ap[i]; 
-			
+		    
+		    if (LineReader.this.history != null)
+			readData.set(LineReader.this.history.enter(readData.get()));
+		    
 		    readData.returnValue = Encoder.encode(tmp, 0, readData.before + readData.after);
 		    return true;
 		    
@@ -274,7 +317,7 @@ public class LineReader implements LineReaderInterface
 		}
 		readData.stateStack.pollLast();
 	    }
-	    else if (('1' <= last) && (last <= '4'))
+	    else if (('1' <= last) && (last <= '6'))
 	    {
 		if (c == '~')
 		    switch (last)
@@ -331,6 +374,16 @@ public class LineReader implements LineReaderInterface
 				}
 			    }
 			    break;
+			    
+		        case '5':  //PAGE UP
+			    if (LineReader.this.history != null)
+				readData.set(LineReader.this.history.up(true, readData.get()));
+			    break;
+			    
+		        case '6':  //PAGE DOWN
+			    if (LineReader.this.history != null)
+				readData.set(LineReader.this.history.down(true, readData.get()));
+			    break;
 		    }
 		
 		readData.stateStack.pollLast();
@@ -340,11 +393,13 @@ public class LineReader implements LineReaderInterface
 		switch (c)
 		{
 		    case 'A':  //UP
-			//TODO history
+			if (LineReader.this.history != null)
+			    readData.set(LineReader.this.history.up(false, readData.get()));
 			break;
 			
 		    case 'B':  //DOWN
-			//TODO history
+			if (LineReader.this.history != null)
+			    readData.set(LineReader.this.history.down(false, readData.get()));
 			break;
 			
 		    case 'C':  //RIGHT
@@ -381,6 +436,8 @@ public class LineReader implements LineReaderInterface
 		    case '2':  //INS
 		    case '3':  //DEL
 		    case '4':  //END
+		    case '5':  //PAGE UP
+		    case '6':  //PAGE DOWN
 			this.last = c;
 			return false; //no poping
 		}
@@ -473,6 +530,15 @@ public class LineReader implements LineReaderInterface
 	{
 	    System.setOut(stdout);
 	}
+    }
+    
+    
+    /**
+     * {@inheritDoc}
+     */
+    public void setHistory(final LineHistoryInterface history)
+    {
+	this.history = history;
     }
     
 }
