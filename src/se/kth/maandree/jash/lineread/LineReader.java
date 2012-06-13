@@ -113,7 +113,7 @@ public class LineReader implements LineReaderInterface
 	 */
 	public int[] get()
 	{
-	    final int rc = new int[this.before + this.after];
+	    final int[] rc = new int[this.before + this.after];
 	    System.arraycopy(this.bp, 0, rc, 0, this.before);
 	    for (int i = this.after - 1, j = this.before; i >= 0; i--, j++)
 		rc[j] = this.ap[i];

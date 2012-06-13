@@ -98,7 +98,7 @@ public class Jash
 		    else
 		    {
 			Properties.execSystemProperty(LineRule.BREAK, "stty icanon echo isig".split(" "));
-			exec(command);
+			exec(parse(command).split("\0"));
 			Properties.execSystemProperty(LineRule.BREAK, "stty -icanon -echo -isig -ixon -ixoff".split(" "));
 		    }
 		}
@@ -116,6 +116,48 @@ public class Jash
 	}
     }
     
+    public static String parse(final String cmd)
+    {
+	final StringBuilder buf = new StringBuilder();
+	
+	char last = ' ';
+	boolean esc = false;
+	int quote = 0;
+	for (int i = 0, n = cmd.length(); i < n; i++)
+	{
+	    final char c = cmd.charAt(i);
+	    if (c == '\0')
+		continue; //bogus
+	    
+	    if (quote == 1)
+		if ((c == '\\') && !esc)
+		{   esc = true;
+		    last = c;
+		    continue;
+		}
+		else if ((c == '"') && !esc)  quote = 0;
+		else                          buf.append(c);
+	    else if (quote == 2)
+		if (c == '\'')  quote = 0;
+		else            buf.append(c);
+	    else if ((c != ' ') || (last != ' '))
+		if ((c == '\\') && !esc)
+		{   esc = true;
+		    last = c;
+		    continue;
+		}
+		else if ((c == ' ') && !esc)   buf.append('\0');
+		else if ((c == '"') && !esc)   quote = 1;
+		else if ((c == '\'') && !esc)  quote = 2;
+		else                           buf.append(c);
+	    last = c;
+	    esc = false;
+	}
+	
+	final String rc = buf.toString();
+	return rc.endsWith(" ") ? rc.substring(0, rc.length() - 1) : rc;
+    }
+        
     @requires("java-runtime>=7")
     public static int exec(final String... cmds)
     {

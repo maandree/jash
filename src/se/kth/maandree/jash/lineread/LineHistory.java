@@ -19,6 +19,7 @@
 package se.kth.maandree.jash.lineread;
 
 import java.io.*;
+import java.util.*;
 
 
 /**
@@ -112,15 +113,16 @@ public class LineHistory implements LineHistoryInterface
     /**
      * {@inheritDoc}
      */
-    public synchronized void enter(final int[] current)
+    public synchronized int[] enter(final int[] current)
     {
 	try
 	{
-	    //TODO
+	    return current; //TODO
 	}
 	catch (final Throwable err)
 	{
 	    //That's too bad
+	    return current;
 	}
     }
     

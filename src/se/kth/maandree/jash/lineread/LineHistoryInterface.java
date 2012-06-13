@@ -49,9 +49,10 @@ public interface LineHistoryInterface
     /**
      * Enter key pressed
      * 
-     * @param  current  The current line
+     * @param   current  The current line
+     * @return           The current line that may have been edited due to use of history functions
      */
-    public void enter(final int[] current);
+    public int[] enter(final int[] current);
     
     /**
      * Finds the last line beginning in a specific way

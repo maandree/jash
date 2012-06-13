@@ -46,7 +46,7 @@ public interface LineReaderInterface
      * 
      * @param  history  The instance handling line history
      */
-    public void setHistory(final LineHistoryInterface history)
+    public void setHistory(final LineHistoryInterface history);
     
 }
 
