@@ -146,10 +146,14 @@ public class Jash
 		    last = c;
 		    continue;
 		}
-		else if ((c == ' ') && !esc)   buf.append('\0');
-		else if ((c == '"') && !esc)   quote = 1;
-		else if ((c == '\'') && !esc)  quote = 2;
-		else                           buf.append(c);
+		else if (esc)
+		    buf.append(c);
+		else if (c == ' ')   buf.append('\0');
+		else if (c == '"')   quote = 1;
+		else if (c == '\'')  quote = 2;
+		else
+		    buf.append(c);
+	    
 	    last = c;
 	    esc = false;
 	}
