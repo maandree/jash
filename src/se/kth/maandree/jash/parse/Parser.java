@@ -18,6 +18,8 @@
  */
 package se.kth.maandree.jash.parse;
 
+import java.util.*;
+
 
 /**
  * Default command parser
@@ -35,7 +37,7 @@ public class Parser implements ParserInterface
      */
     public Execute parse(final String command)
     {
-	final String cmd = command + ' ';
+	String cmd = command + ' ';
 	StringBuilder buf = new StringBuilder();
 	final ArrayList<Argument> arguments = new ArrayList<Argument>();
 	final ArrayList<Redirect> redirects = new ArrayList<Redirect>();
@@ -49,6 +51,7 @@ public class Parser implements ParserInterface
 	// §()
 	// §
 	// §{}
+	// @()
 	// @
 	// @{}
 	
@@ -63,8 +66,8 @@ public class Parser implements ParserInterface
 	
 	int wordtype = 0, _wordtype = 0;
 	// arg = 0
-	// <   = 1, <>  = 2, >  = 3, >>  =  4, 2>  =  5, 2>>  =  6
-	// <&  = 7, <>& = 8, >& = 9, >>& = 10, 2>& = 11, 2>>& = 12
+	// <   = 1,  <>  = 2,  >  = 3,  >>  =  4,  2>  =  5,  2>>  =  6
+	// <&  = 7,  <>& = 8,  >& = 9,  >>& = 10,  2>& = 11,  2>>& = 12
 	
 	char last = ' ';
 	boolean esc = false;
@@ -95,6 +98,8 @@ public class Parser implements ParserInterface
 		}
 		else if (esc)
 		    buf.append(c);
+		else if ((c == '#') && (last == ' '))
+		    break;
 		else if (c == ' ')   wordend = true;
 		else if (c == '"')   quote = 1;
 		else if (c == '\'')  quote = 2;
@@ -120,6 +125,10 @@ public class Parser implements ParserInterface
 		    {   _wordtype = 4;
 			i++;
 		    }
+		    else if (cmd.charAt(i + 1) == '<')
+		    {   _wordtype = 2;
+			i++;
+		    }
 		}
 		else if ((c == '2') && (last == ' '))
 		    if ((c = cmd.charAt(++i)) == '>')
@@ -135,6 +144,20 @@ public class Parser implements ParserInterface
 		    {   buf.append('2');
 			i--;
 		    }
+		else if ((c == '1') && (last == ' '))
+		    if ((c = cmd.charAt(++i)) == '>')
+		    {
+			wordend = true;
+			_wordtype = 3;
+			if (cmd.charAt(i + 1) == '>')
+			{   _wordtype = 4;
+			    i++;
+			}
+		    }
+		    else
+		    {   buf.append('1');
+			i--;
+		    }
 		else
 		    buf.append(c);
 	    
@@ -144,17 +167,98 @@ public class Parser implements ParserInterface
 	    if (wordend)
 	    {
 		wordend = false;
-		arguments.add(new LiteralArgument(buf.toString(), LiteralArgument.EXACT));
+		int red = buf.toString().equals("&0") ? Redirect.STDIN  : 
+		          buf.toString().equals("&1") ? Redirect.STDOUT : 
+		          buf.toString().equals("&2") ? Redirect.STDERR : 
+		          Redirect.FILE;
+		if ((red == Redirect.FILE) && (7 <= wordtype) && (wordtype <= 12))
+		    wordtype -= 6;
+		switch (wordtype)
+		{
+		    case 0: // arg
+			arguments.add(new LiteralArgument(buf.toString(), LiteralArgument.EXACT));
+			break;
+			
+		    case 1: // <
+			redirects.add(new Redirect(Redirect.STDIN, Redirect.FILE, buf.toString(), false));
+			break;
+			
+		    case 2: // <>
+			redirects.add(new Redirect(Redirect.STDIN_OUT, Redirect.FILE, buf.toString(), false));
+			break;
+			
+		    case 3: // >
+			redirects.add(new Redirect(Redirect.STDOUT, Redirect.FILE, buf.toString(), false));
+			break;
+			
+		    case 4: // >>
+			redirects.add(new Redirect(Redirect.STDOUT, Redirect.FILE, buf.toString(), true));
+			break;
+			
+		    case 5: // 2>
+			redirects.add(new Redirect(Redirect.STDERR, Redirect.FILE, buf.toString(), false));
+			break;
+			
+		    case 6: // 2>>
+			redirects.add(new Redirect(Redirect.STDERR, Redirect.FILE, buf.toString(), true));
+			break;
+			
+		    case 7: // <&
+			redirects.add(new Redirect(Redirect.STDIN, red, null, false));
+			break;
+			
+		    case 8: // <>&
+			redirects.add(new Redirect(Redirect.STDIN_OUT, red, null, false));
+			break;
+			
+		    case 9: // >&
+			redirects.add(new Redirect(Redirect.STDOUT, red, null, false));
+			break;
+			
+		    case 10: // >>&
+			redirects.add(new Redirect(Redirect.STDOUT, red, null, true));
+			break;
+			
+		    case 11: // 2>&
+			redirects.add(new Redirect(Redirect.STDERR, red, null, false));
+			break;
+			
+		    case 12: // 2>>&
+			redirects.add(new Redirect(Redirect.STDERR, red, null, true));
+			break;
+		}
 		buf = new StringBuilder();
 		wordtype = _wordtype;
+		_wordtype = 0;
 		last = ' ';
+		arguments.add(null);
 	    }
 	}
 	
-	final String rc = buf.toString();
-	return rc.endsWith(" ") ? rc.substring(0, rc.length() - 1) : rc;
+	final ArrayList<Argument> $args = new ArrayList<Argument>();
+	final ArrayList<Argument> _args = new ArrayList<Argument>();
+	arguments.add(null);
+	
+	for (final Argument argument : arguments)
+	    if (argument == null)
+	    {
+		if (_args.size() == 1)
+		    $args.add(_args.get(0));
+		else if (_args.size() > 1)
+		{
+		    final Argument[] composite = new Argument[_args.size()];
+		    _args.toArray(composite);
+		    $args.add(new CompositeArgument(composite));
+		}
+		_args.clear();
+	    }
+	    else
+		_args.add(argument);
+	
+	final Argument[] args = new Argument[$args    .size()];  $args    .toArray(args);
+	final Redirect[] reds = new Redirect[redirects.size()];  redirects.toArray(reds);
+	return new Execute(args, reds, true, null, 0);
     }
- 
     
 }
 

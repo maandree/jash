@@ -56,6 +56,8 @@ public class ExecuteArgument implements Argument
      */
     public static final int PARSE_STDOUT = 5;
     
+    //The following are possible, but not by the default parser
+    
     /**
      * Take the executed program's stderr output as argument and split NUL into separate arguments
      */
@@ -101,5 +103,6 @@ public class ExecuteArgument implements Argument
      * How to parse
      */
     public final int type;
+    
 }
 

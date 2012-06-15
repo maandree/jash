@@ -34,22 +34,25 @@ public class Chain
     /**
      * Pipe line output to input of new execute
      */
-    public static final int PIPE = 0;
+    public static final int PIPE = 1;
     
     /**
      * A normal appending execution if exit value is 0
      */
-    public static final int ON_SUCCESS = 0;
+    public static final int ON_SUCCESS = 2;
     
     /**
      * A normal appending execution if exit value is not 0
      */
-    public static final int ON_FAILURE = 0;
+    public static final int ON_FAILURE = 3;
     
     
     
     /**
      * Constructor
+     * 
+     * @param  next  The next execution
+     * @param  type  The chain type
      */
     public Chain(final Execute next, final int type)
     {

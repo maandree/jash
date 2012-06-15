@@ -33,13 +33,15 @@ public class Execute
      * @param  redirects  Channel redirections
      * @param  blocking   Whether to wait for program to exit
      * @param  chaining   Execution chaining
+     * @param  compounds  The number of started compound executes minus the number of ended compound executes
      */
-    public Execute(final Argument[] arguments, final Redirect[] redirects, final boolean blocking, final Chain chaining)
+    public Execute(final Argument[] arguments, final Redirect[] redirects, final boolean blocking, final Chain chaining, final int compounds)
     {
 	this.arguments = arguments;
 	this.redirects = redirects;
-	this.blocking = blocking;
-	this.chaining = chaining;
+	this.blocking  = blocking;
+	this.chaining  = chaining;
+	this.compounds = compounds;
     }
     
     
@@ -63,6 +65,11 @@ public class Execute
      * Execution chaining
      */
     public final Chain chaining;
+    
+    /**
+     * The number of started compound executes minus the number of ended compound executes
+     */
+    public final int compounds;
     
 }
 

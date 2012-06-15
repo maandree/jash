@@ -44,7 +44,7 @@ public class Redirect
     /**
      * From both executed program's /dev/stdin and executed program's /dev/stdout
      */
-    public static final int STDIM_OUT = 3;
+    public static final int STDIN_OUT = 3;
     
     /**
      * To another file
