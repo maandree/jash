@@ -33,19 +33,12 @@ public class Parser implements ParserInterface
     /**
      * {@inheritDoc}
      */
-    public Execute parse(final String cmd)
+    public Execute parse(final String command)
     {
-	final StringBuilder buf = new StringBuilder();
-	
-	// <>
-	// >
-	// >>
-	// <
-	// 2>
-	// 2>>
-	// &0
-	// &1
-	// &2
+	final String cmd = command + ' ';
+	StringBuilder buf = new StringBuilder();
+	final ArrayList<Argument> arguments = new ArrayList<Argument>();
+	final ArrayList<Redirect> redirects = new ArrayList<Redirect>();
 	
 	// >()
 	// <()
@@ -68,12 +61,18 @@ public class Parser implements ParserInterface
 	// && on success, blocking
 	// || on failure, blocking
 	
+	int wordtype = 0, _wordtype = 0;
+	// arg = 0
+	// <   = 1, <>  = 2, >  = 3, >>  =  4, 2>  =  5, 2>>  =  6
+	// <&  = 7, <>& = 8, >& = 9, >>& = 10, 2>& = 11, 2>>& = 12
+	
 	char last = ' ';
 	boolean esc = false;
 	int quote = 0;
+	boolean wordend = false;
 	for (int i = 0, n = cmd.length(); i < n; i++)
 	{
-	    final char c = cmd.charAt(i);
+	    char c = cmd.charAt(i);
 	    if (c == '\0')
 		continue; //sic!
 	    
@@ -96,14 +95,60 @@ public class Parser implements ParserInterface
 		}
 		else if (esc)
 		    buf.append(c);
-		else if (c == ' ')   buf.append('\0');
+		else if (c == ' ')   wordend = true;
 		else if (c == '"')   quote = 1;
 		else if (c == '\'')  quote = 2;
+		else if ((c == '&') && (1 <= wordtype) && (wordtype <= 6) && (last == ' '))
+		{
+		    wordtype += 6;
+		    buf.append(c);
+		}
+		else if (c == '<')
+		{
+		    wordend = true;
+		    _wordtype = 1;
+		    if (cmd.charAt(i + 1) == '>')
+		    {   _wordtype = 2;
+			i++;
+		    }
+		}
+		else if (c == '>')
+		{
+		    wordend = true;
+		    _wordtype = 3;
+		    if (cmd.charAt(i + 1) == '>')
+		    {   _wordtype = 4;
+			i++;
+		    }
+		}
+		else if ((c == '2') && (last == ' '))
+		    if ((c = cmd.charAt(++i)) == '>')
+		    {
+			wordend = true;
+			_wordtype = 5;
+			if (cmd.charAt(i + 1) == '>')
+			{   _wordtype = 6;
+			    i++;
+			}
+		    }
+		    else
+		    {   buf.append('2');
+			i--;
+		    }
 		else
 		    buf.append(c);
 	    
 	    last = c;
 	    esc = false;
+	    
+	    if (wordend)
+	    {
+		wordend = false;
+		arguments.add(new LiteralArgument(buf.toString(), LiteralArgument.EXACT));
+		buf = new StringBuilder();
+		wordtype = _wordtype;
+		last = ' ';
+	    }
 	}
 	
 	final String rc = buf.toString();
