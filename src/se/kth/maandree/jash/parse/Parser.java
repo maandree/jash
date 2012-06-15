@@ -42,8 +42,6 @@ public class Parser implements ParserInterface
 	final ArrayList<Argument> arguments = new ArrayList<Argument>();
 	final ArrayList<Redirect> redirects = new ArrayList<Redirect>();
 	
-	// >()
-	// <()
 	// ``
 	// $()
 	// $
@@ -53,7 +51,6 @@ public class Parser implements ParserInterface
 	// §{}
 	// @()
 	// @
-	// @{}
 	
 	// ; blocking cat
 	// & nonblocking (cat)
@@ -66,12 +63,20 @@ public class Parser implements ParserInterface
 	
 	int wordtype = 0, _wordtype = 0;
 	// arg = 0
-	// <   = 1,  <>  = 2,  >  = 3,  >>  =  4,  2>  =  5,  2>>  =  6
-	// <&  = 7,  <>& = 8,  >& = 9,  >>& = 10,  2>& = 11,  2>>& = 12
+	// <   =  1,  <>  =  2,  >  =  3,  >>  =  4,  2>  =  5,  2>>  =  6
+	// <&  =  7,  <>& =  8,  >& =  9,  >>& = 10,  2>& = 11,  2>>& = 12
+	// >() = 13,  <() = 14   //TODO
+	
+	int quote = 0;
+	// norm = 0
+	// ""   = 1
+	// ''   = 2
+	// ``   = 3   "``"  = 6
+	// ()   = 4   "()"  = 7
+	// {}   = 5   "{}"  = 8
 	
 	char last = ' ';
 	boolean esc = false;
-	int quote = 0;
 	boolean wordend = false;
 	for (int i = 0, n = cmd.length(); i < n; i++)
 	{
@@ -116,6 +121,13 @@ public class Parser implements ParserInterface
 		    {   _wordtype = 2;
 			i++;
 		    }
+		    else if (cmd.charAt(i + 1) == '(') //TODO in "
+		    {   wordend = false;
+			_wordtype = 14;
+			qoute = 4;
+			i++;
+			//FIXME what about buf
+		    }
 		}
 		else if (c == '>')
 		{
@@ -126,8 +138,16 @@ public class Parser implements ParserInterface
 			i++;
 		    }
 		    else if (cmd.charAt(i + 1) == '<')
-		    {   _wordtype = 2;
+		    {   wordend;
+			_wordtype = 2;
 			i++;
+		    }
+		    else if (cmd.charAt(i + 1) == '(') //TODO in "
+		    {   wordend = false;
+			_wordtype = 13;
+			qoute = 4;
+			i++;
+			//FIXME what about buf
 		    }
 		}
 		else if ((c == '2') && (last == ' '))
