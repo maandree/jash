@@ -55,9 +55,11 @@ public class Parser implements ParserInterface
 	// ; blocking cat
 	// & nonblocking (cat)
 	// # end!
-	// | blocking pipe
+	// | nonblocking pipe
 	// &| nonblocking pipe
 	// & | nonblocking pipe
+	// ;| blocking pipe
+	// ; | blocking pipe
 	// && on success, blocking
 	// || on failure, blocking
 	
