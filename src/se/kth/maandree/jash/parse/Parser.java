@@ -74,6 +74,7 @@ public class Parser implements ParserInterface
 	// §{}
 	// @()
 	// @
+	// @{}
 	
 	// ; blocking cat
 	// & nonblocking (cat)
