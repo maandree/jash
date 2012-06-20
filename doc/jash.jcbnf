@@ -14,7 +14,8 @@ w         ::= [{ws}]
 
 
 execcmd   ::= compoundu w args w [chain] compoundd
-echocmd   ::= \A "?" variable \z
+echocmd   ::= \A "?" <var=variable> \z
+          ==> "echo $"<var>
 
 
 compoundu ::= [w "("]
