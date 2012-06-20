@@ -110,6 +110,9 @@ public class Parser implements ParserInterface
 	    if ((c == quoteEnd) && (quote == 0))
 		break;
 	    
+	    if ((quote == 0) && (c == '\t'))
+		c = ' ';
+	    
 	    if (quote == 1)
 		if ((c == '\\') && !esc)
 		{   esc = true;

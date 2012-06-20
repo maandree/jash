@@ -1,0 +1,95 @@
+### TODO:  if, while, for &c
+### TODO:  substitution and subarrays
+### TODO:  <<, ? and *
+
+
+jash      :: [{line}] \z
+
+line      ::= command \Z
+
+command   ::= compoundu w args w [chain] compoundd
+ws        ::= ' ' | \t
+v         ::= {ws}
+w         ::= [{ws}]
+
+
+compoundu ::= [w "("]
+compoundd ::= [")" w]
+
+args      ::= [argument [{v argument}]]
+
+
+chain     ::= pipe | condict | cat
+
+cat       ::= blockc | nonblockc
+blockc    ::= ";" [command | v]
+nonblockc ::= "&" [command | v]
+
+pipe      ::= blockp | nonblockp 
+blockp    ::= ";" w "|" command
+nonblockp ::= ["&" w] "|" command
+
+condict   ::= onzero | onnonzero
+onzero    ::= "&&" command
+onnonzero ::= "||" command
+
+
+redirect  ::= (rederr | redout | redin | redboth) w (stdin | stdout | stderr | file)
+
+rederr    ::= "2" (rewrite | append)
+redout    ::= rewrite | append
+
+rewrite   ::= ">"
+append    ::= ">>"
+redin     ::= "<"
+redboth   ::= "<>"
+
+stdin     ::= "&0"
+stdout    ::= "&1"
+stderr    ::= "&2"
+
+
+file      ::= [{arg}]
+comment   ::= "#" [{$any ^\r ^\n ^\f}]
+argument  ::= comment | [{redirect | arg}]
+arg	  ::= sqoute | dqoute | gqoute | nonqoute | execio | letter
+
+nonqoute  ::= params | paramc | dollar | paragraph | parse
+params    ::= "$@"
+paramc    ::= "$#"
+
+execio    ::= execin | execout
+execin    ::= ">(" command ")"
+execout   ::= "<(" command ")"
+
+dollar    ::= dexecute | dliteral | dsimple
+dexecute  ::= "$(" command ")"
+dliteral  ::= "${" command "}"
+dsimple   ::= "$" variable
+
+paragraph ::= pexecute | pliteral | psimple
+pexecute  ::= "§(" command ")"
+pliteral  ::= "§{" command "}"
+psimple   ::= "§" variable
+
+parse     ::= aexecute | aliteral | asimple
+aexecute  ::= "@(" command ")"
+aliteral  ::= "@{" command "}"
+asimple   ::= "@" file
+
+
+variable  ::= $letter | '0'..'9' | '_'
+
+sqoute    ::= \' stext \'
+stext     ::= [{$any ^ \'}]
+
+dqoute    ::= \" dinner \"
+dinner    ::= [{nonqoute | dletter | ws}]
+
+gqoute    ::= \` <innercmd=gcmd> \`
+	  ==> "$(" <innercmd> ")"
+gcmd      ::= [{\\ $any | $any ^\` ^\\}]
+
+
+letter    ::= \\ $any | $any ^\\ ^\" ^\' ^\` ^' ' ^\t ^\r ^\n ^\f ^@"&|;"
+dletter   ::= letter | @"&|;"
