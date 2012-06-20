@@ -7,10 +7,14 @@ jash      :: [{line}] \z
 
 line      ::= command \Z
 
-command   ::= compoundu w args w [chain] compoundd
+command   ::= echocmd | execcmd
 ws        ::= ' ' | \t
 v         ::= {ws}
 w         ::= [{ws}]
+
+
+execcmd   ::= compoundu w args w [chain] compoundd
+echocmd   ::= \A "?" variable \z
 
 
 compoundu ::= [w "("]
