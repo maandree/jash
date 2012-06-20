@@ -33,16 +33,39 @@ public class Parser implements ParserInterface
     
     
     /**
+     * Command pointer
+     */
+    private int i = 0;
+    
+    
+    
+    /**
      * {@inheritDoc}
      */
     public Execute parse(final String command)
+    {
+	synchronized (this)
+	{
+	    this.i = 0;
+	    return parse(command, 0);
+	}
+    }
+    
+    
+    /**
+     * Implementation for {@link #parse(String)}
+     * 
+     * @param   command   See {@link #parse(String)}
+     * @param   quoteEnd  End of current quote, NUL of none
+     * @return            See {@link #parse(String)}
+     */
+    private Execute parse(final String command, final char quoteEnd)
     {
 	String cmd = command + ' ';
 	StringBuilder buf = new StringBuilder();
 	final ArrayList<Argument> arguments = new ArrayList<Argument>();
 	final ArrayList<Redirect> redirects = new ArrayList<Redirect>();
 	
-	// ``
 	// $()
 	// $
 	// ${}
@@ -67,24 +90,24 @@ public class Parser implements ParserInterface
 	// arg = 0
 	// <   =  1,  <>  =  2,  >  =  3,  >>  =  4,  2>  =  5,  2>>  =  6
 	// <&  =  7,  <>& =  8,  >& =  9,  >>& = 10,  2>& = 11,  2>>& = 12
-	// >() = 13,  <() = 14   //TODO
+	// >() = 13,  <() = 14
 	
 	int quote = 0;
 	// norm = 0
-	// ""   = 1
-	// ''   = 2
-	// ``   = 3   "``"  = 6
-	// ()   = 4   "()"  = 7
-	// {}   = 5   "{}"  = 8
+	// ""   = 1   ''    = 2
+	// ()   = 3   "()"  = 4
+	// {}   = 5   "{}"  = 6
 	
 	char last = ' ';
 	boolean esc = false;
 	boolean wordend = false;
-	for (int i = 0, n = cmd.length(); i < n; i++)
+	for (int n = cmd.length(); i < n; i++)
 	{
 	    char c = cmd.charAt(i);
 	    if (c == '\0')
 		continue; //sic!
+	    if ((c == quoteEnd) && (quote == 0))
+		break;
 	    
 	    if (quote == 1)
 		if ((c == '\\') && !esc)
@@ -92,8 +115,12 @@ public class Parser implements ParserInterface
 		    last = c;
 		    continue;
 		}
-		else if ((c == '"') && !esc)  quote = 0;
-		else                          buf.append(c);
+		else if (esc)
+		    buf.append(c);
+		else if (c == '"')  quote = 0;
+		else if (c == '`')  ; //FIXME
+		else
+		    buf.append(c);
 	    else if (quote == 2)
 		if (c == '\'')  quote = 0;
 		else            buf.append(c);
@@ -110,6 +137,7 @@ public class Parser implements ParserInterface
 		else if (c == ' ')   wordend = true;
 		else if (c == '"')   quote = 1;
 		else if (c == '\'')  quote = 2;
+		else if (c == '`')   ; //FIXME
 		else if ((c == '&') && (1 <= wordtype) && (wordtype <= 6) && (last == ' '))
 		{
 		    wordtype += 6;
@@ -123,12 +151,13 @@ public class Parser implements ParserInterface
 		    {   _wordtype = 2;
 			i++;
 		    }
-		    else if (cmd.charAt(i + 1) == '(') //TODO in "
+		    else if (cmd.charAt(i + 1) == '(')
 		    {   wordend = false;
 			_wordtype = 14;
-			qoute = 4;
 			i++;
 			//FIXME what about buf
+			//FIXME parse(command, ')');
+			//FIXME if command.charAt(i) ≠ −1, and ')' is missing
 		    }
 		}
 		else if (c == '>')
@@ -140,16 +169,16 @@ public class Parser implements ParserInterface
 			i++;
 		    }
 		    else if (cmd.charAt(i + 1) == '<')
-		    {   wordend;
-			_wordtype = 2;
+		    {   _wordtype = 2;
 			i++;
 		    }
-		    else if (cmd.charAt(i + 1) == '(') //TODO in "
+		    else if (cmd.charAt(i + 1) == '(')
 		    {   wordend = false;
 			_wordtype = 13;
-			qoute = 4;
 			i++;
 			//FIXME what about buf
+			//FIXME parse(command, ')');
+			//FIXME if command.charAt(i) ≠ −1, and ')' is missing
 		    }
 		}
 		else if ((c == '2') && (last == ' '))
@@ -197,57 +226,19 @@ public class Parser implements ParserInterface
 		    wordtype -= 6;
 		switch (wordtype)
 		{
-		    case 0: // arg
-			arguments.add(new LiteralArgument(buf.toString(), LiteralArgument.EXACT));
-			break;
-			
-		    case 1: // <
-			redirects.add(new Redirect(Redirect.STDIN, Redirect.FILE, buf.toString(), false));
-			break;
-			
-		    case 2: // <>
-			redirects.add(new Redirect(Redirect.STDIN_OUT, Redirect.FILE, buf.toString(), false));
-			break;
-			
-		    case 3: // >
-			redirects.add(new Redirect(Redirect.STDOUT, Redirect.FILE, buf.toString(), false));
-			break;
-			
-		    case 4: // >>
-			redirects.add(new Redirect(Redirect.STDOUT, Redirect.FILE, buf.toString(), true));
-			break;
-			
-		    case 5: // 2>
-			redirects.add(new Redirect(Redirect.STDERR, Redirect.FILE, buf.toString(), false));
-			break;
-			
-		    case 6: // 2>>
-			redirects.add(new Redirect(Redirect.STDERR, Redirect.FILE, buf.toString(), true));
-			break;
-			
-		    case 7: // <&
-			redirects.add(new Redirect(Redirect.STDIN, red, null, false));
-			break;
-			
-		    case 8: // <>&
-			redirects.add(new Redirect(Redirect.STDIN_OUT, red, null, false));
-			break;
-			
-		    case 9: // >&
-			redirects.add(new Redirect(Redirect.STDOUT, red, null, false));
-			break;
-			
-		    case 10: // >>&
-			redirects.add(new Redirect(Redirect.STDOUT, red, null, true));
-			break;
-			
-		    case 11: // 2>&
-			redirects.add(new Redirect(Redirect.STDERR, red, null, false));
-			break;
-			
-		    case 12: // 2>>&
-			redirects.add(new Redirect(Redirect.STDERR, red, null, true));
-			break;
+		    case 0:   arguments.add(new LiteralArgument(buf.toString(), LiteralArgument.EXACT));              break; // arg
+		    case 1:   redirects.add(new Redirect(Redirect.STDIN, Redirect.FILE, buf.toString(), false));      break; // <
+		    case 2:   redirects.add(new Redirect(Redirect.STDIN_OUT, Redirect.FILE, buf.toString(), false));  break; // <>
+		    case 3:   redirects.add(new Redirect(Redirect.STDOUT, Redirect.FILE, buf.toString(), false));     break; // >
+		    case 4:   redirects.add(new Redirect(Redirect.STDOUT, Redirect.FILE, buf.toString(), true));      break; // >>
+		    case 5:   redirects.add(new Redirect(Redirect.STDERR, Redirect.FILE, buf.toString(), false));     break; // 2>
+		    case 6:   redirects.add(new Redirect(Redirect.STDERR, Redirect.FILE, buf.toString(), true));      break; // 2>>
+		    case 7:   redirects.add(new Redirect(Redirect.STDIN, red, null, false));                          break; // <&
+		    case 8:   redirects.add(new Redirect(Redirect.STDIN_OUT, red, null, false));                      break; // <>&
+		    case 9:   redirects.add(new Redirect(Redirect.STDOUT, red, null, false));                         break; // >&
+		    case 10:  redirects.add(new Redirect(Redirect.STDOUT, red, null, true));                          break; // >>&
+		    case 11:  redirects.add(new Redirect(Redirect.STDERR, red, null, false));                         break; // 2>&
+		    case 12:  redirects.add(new Redirect(Redirect.STDERR, red, null, true));                          break; // 2>>&
 		}
 		buf = new StringBuilder();
 		wordtype = _wordtype;
