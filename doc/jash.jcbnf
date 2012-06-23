@@ -93,7 +93,9 @@ dinner    ::= [{nonqoute | dletter | ws}]
 
 gqoute    ::= \` <innercmd=gcmd> \`
 	  ==> "$(" <innercmd> ")"
-gcmd      ::= [{\\ $any | $any ^\` ^\\}]
+gcmd      ::= [{ gparsed | gplain}]
+gparsed   ::= sqoute | dqoute | execio | dollar | paragraph | parse
+gplain    ::= \\ $any | $any ^\` ^\\
 
 
 letter    ::= \\ $any | $any ^\\ ^\" ^\' ^\` ^' ' ^\t ^\r ^\n ^\f ^@"&|;"
