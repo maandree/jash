@@ -1,6 +1,6 @@
-### TODO:  if, while, for &c
-### TODO:  substitution and subarrays
-### TODO:  <<, ? and *
+::= TODO:  if, while, for &c
+::= TODO:  substitution and subarrays
+::= TODO:  <<, ? and *
 
 
 jash      :: [{line}] \z
