@@ -3,7 +3,7 @@
 ::= TODO:  <<, ? and *
 
 
-jash      :: [{line}] \z
+jash      ::= [{line}] \z
 
 line      ::= command \Z
 
