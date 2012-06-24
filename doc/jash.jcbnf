@@ -8,7 +8,7 @@ jash      ::= [{line}] \z
 line      ::= command \Z
 
 command   ::= echocmd | execcmd
-ws        ::= ' ' | \t
+ws        ::= " " | \t
 v         ::= {ws}
 w         ::= [{ws}]
 
@@ -83,7 +83,7 @@ aliteral  ::= "@{" command "}"
 asimple   ::= "@" file
 
 
-variable  ::= $letter | '0'..'9' | '_'
+variable  ::= $letter | '0'..'9' | "_"
 
 sqoute    ::= \' stext \'
 stext     ::= [{$any ^ \'}]
@@ -91,12 +91,12 @@ stext     ::= [{$any ^ \'}]
 dqoute    ::= \" dinner \"
 dinner    ::= [{nonqoute | dletter | ws}]
 
-gqoute    ::= \` <innercmd=gcmd> \`
+gqoute    ::= "`" <innercmd=gcmd> "`"
 	  ==> "$(" <innercmd> ")"
 gcmd      ::= [{ gparsed | gplain}]
 gparsed   ::= sqoute | dqoute | execio | dollar | paragraph | parse
-gplain    ::= \\ $any | $any ^\` ^\\
+gplain    ::= \\ $any | $any ^'`' ^\\
 
 
-letter    ::= \\ $any | $any ^\\ ^\" ^\' ^\` ^' ' ^\t ^\r ^\n ^\f ^'&' ^'|' ^';'
+letter    ::= \\ $any | $any ^\\ ^\" ^\' ^'`' ^' ' ^\t ^\r ^\n ^\f ^'&' ^'|' ^';'
 dletter   ::= letter | @"&|;"
